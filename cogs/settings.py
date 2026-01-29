@@ -54,6 +54,29 @@ class Settings(commands.Cog):
         await self.config_manager.set_antinuke_threshold(ctx.guild.id, action, count, hours)
         await ctx.send(f"✅ Set anti-nuke threshold for {action}: {count} actions per {hours} hours")
     
+    @antinuke.command(name='view')
+    @is_owner()
+    async def antinuke_view(self, ctx):
+        thresholds = await self.config_manager.get_antinuke_thresholds(ctx.guild.id)
+        
+        if not thresholds:
+            await ctx.send("❌ No anti-nuke thresholds configured")
+            return
+        
+        embed = discord.Embed(
+            title="Anti-Nuke Thresholds",
+            color=discord.Color.gold()
+        )
+        
+        for action, config in thresholds.items():
+            embed.add_field(
+                name=f"Action: {action}",
+                value=f"**Count:** {config['count']}\n**Time Window:** {config['hours']} hours",
+                inline=False
+            )
+        
+        await ctx.send(embed=embed)
+    
     @commands.command(name='logperms')
     @is_admin()
     async def log_perms(self, ctx, log_type: str = None, role: discord.Role = None):
@@ -83,6 +106,11 @@ class Settings(commands.Cog):
             await ctx.send(f"✅ Granted {role.mention} access to {log_channel.mention}")
         except:
             await ctx.send("❌ Failed to update permissions")
+    
+    @commands.command(name='whitelist')
+    @is_owner()
+    async def whitelist_info(self, ctx):
+        await ctx.send("Use `.whitelist add/remove/list` in the antinuke cog")
 
 async def setup(bot):
     await bot.add_cog(Settings(bot))

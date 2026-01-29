@@ -185,8 +185,6 @@ class AntiNuke(commands.Cog):
     async def on_webhooks_update(self, channel):
         try:
             await asyncio.sleep(1)
-            webhooks = await channel.webhooks()
-            
             async for entry in channel.guild.audit_logs(limit=5, action=discord.AuditLogAction.webhook_create):
                 executor = entry.user
                 
@@ -235,6 +233,33 @@ class AntiNuke(commands.Cog):
             await ctx.send(f"✅ Removed {role.mention} from anti-nuke whitelist")
         else:
             await ctx.send("❌ Please mention a user or role")
+    
+    @whitelist.command(name='list')
+    @is_owner()
+    async def whitelist_list(self, ctx):
+        whitelist = await self.config_manager.get_antinuke_whitelist(ctx.guild.id)
+        
+        user_list = []
+        for user_id in whitelist.get('users', []):
+            user = ctx.guild.get_member(user_id)
+            if user:
+                user_list.append(user.mention)
+        
+        role_list = []
+        for role_id in whitelist.get('roles', []):
+            role = ctx.guild.get_role(role_id)
+            if role:
+                role_list.append(role.mention)
+        
+        embed = discord.Embed(
+            title="Anti-Nuke Whitelist",
+            color=discord.Color.gold()
+        )
+        
+        embed.add_field(name="Whitelisted Users", value='\n'.join(user_list) if user_list else "None", inline=False)
+        embed.add_field(name="Whitelisted Roles", value='\n'.join(role_list) if role_list else "None", inline=False)
+        
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(AntiNuke(bot))

@@ -150,9 +150,12 @@ class Moderation(commands.Cog):
         
         hardban_list = []
         for user_id, data in hardbans.items():
-            user = await self.bot.fetch_user(int(user_id))
-            banned_by = await self.bot.fetch_user(data['banned_by'])
-            hardban_list.append(f"**{user.name}#{user.discriminator}** ({user_id})\nBanned by: {banned_by.name}#{banned_by.discriminator}\nReason: {data['reason']}\n")
+            try:
+                user = await self.bot.fetch_user(int(user_id))
+                banned_by = await self.bot.fetch_user(data['banned_by'])
+                hardban_list.append(f"**{user.name}#{user.discriminator}** ({user_id})\nBanned by: {banned_by.name}#{banned_by.discriminator}\nReason: {data['reason']}\n")
+            except:
+                hardban_list.append(f"**Unknown User** ({user_id})\nBanned by: Unknown\nReason: {data['reason']}\n")
         
         paginated, total_pages = paginate_list(hardban_list, page, 5)
         
@@ -382,6 +385,7 @@ class Moderation(commands.Cog):
             name="**Anti-Nuke (Owner)**",
             value="`.whitelist add @user/@role` - Add to whitelist\n"
                   "`.whitelist remove @user/@role` - Remove from whitelist\n"
+                  "`.whitelist list` - View whitelist\n"
                   "`.antinuke threshold <action> <count> <hours>` - Set thresholds",
             inline=False
         )

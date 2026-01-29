@@ -96,6 +96,11 @@ class VoiceChannel(commands.Cog):
             if vc_data and vc_data['owner_id'] == member.id:
                 self.vc_manager.clear_owner_left_time(after.channel.id)
     
+    @commands.Cog.listener()
+    async def on_guild_channel_delete(self, channel):
+        if isinstance(channel, discord.VoiceChannel):
+            await self.vc_manager.delete_vc(channel.id)
+    
     @commands.group(name='vc', invoke_without_command=True)
     async def vc(self, ctx):
         await ctx.send("Use `.vc <command>`. Type `.vc help` for a list of commands.")
@@ -380,6 +385,43 @@ class VoiceChannel(commands.Cog):
             await channel.delete(reason=f"Deleted by owner {ctx.author}")
         except:
             await ctx.send("❌ Failed to delete voice channel")
+    
+    @vc.command(name='help')
+    async def vc_help(self, ctx):
+        embed = discord.Embed(
+            title="🎙️ Voice Channel Commands",
+            description="All commands for managing your voice channel",
+            color=discord.Color.blue()
+        )
+        
+        embed.add_field(
+            name="Ownership",
+            value="`.vc claim` - Claim an unowned VC (30s after owner leaves)\n"
+                  "`.vc transfer @user` - Transfer ownership to another user",
+            inline=False
+        )
+        
+        embed.add_field(
+            name="Access Control",
+            value="`.vc lock` - Lock the VC (only trusted can join)\n"
+                  "`.vc unlock` - Unlock the VC\n"
+                  "`.vc trust @user` - Add a trusted user\n"
+                  "`.vc untrust @user` - Remove a trusted user\n"
+                  "`.vc block @user` - Block a user from the VC\n"
+                  "`.vc unblock @user` - Unblock a user",
+            inline=False
+        )
+        
+        embed.add_field(
+            name="Management",
+            value="`.vc disconnect @user` - Disconnect a user from the VC\n"
+                  "`.vc limit <number>` - Set user limit (0 = unlimited)\n"
+                  "`.vc rename <name>` - Rename the VC\n"
+                  "`.vc delete` - Delete the VC",
+            inline=False
+        )
+        
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(VoiceChannel(bot))
