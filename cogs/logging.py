@@ -169,6 +169,110 @@ class Logging(commands.Cog):
                 await log_channel.send(embed=embed)
             except:
                 pass
+    
+    @commands.Cog.listener()
+    async def on_guild_role_create(self, role):
+        try:
+            channel_id = await self.config_manager.get_log_channel(role.guild.id, 'roles')
+            if not channel_id:
+                return
+            
+            log_channel = role.guild.get_channel(channel_id)
+            if not log_channel:
+                return
+            
+            async for entry in role.guild.audit_logs(limit=1, action=discord.AuditLogAction.role_create):
+                if entry.target.id == role.id:
+                    executor = entry.user
+                    
+                    embed = create_log_embed(
+                        "Role Created",
+                        f"**Creator:** {executor.mention} ({executor.name}#{executor.discriminator} - {executor.id})\n"
+                        f"**Role:** {role.mention}\n"
+                        f"**Time:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                        discord.Color.green()
+                    )
+                    
+                    await log_channel.send(embed=embed)
+                    break
+        except Exception as e:
+            print(f"Error in on_guild_role_create: {e}")
+    
+    @commands.Cog.listener()
+    async def on_guild_role_update(self, before, after):
+        try:
+            channel_id = await self.config_manager.get_log_channel(before.guild.id, 'roles')
+            if not channel_id:
+                return
+            
+            log_channel = before.guild.get_channel(channel_id)
+            if not log_channel:
+                return
+            
+            async for entry in before.guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+                if entry.target.id == before.id:
+                    executor = entry.user
+                    
+                    added_perms = []
+                    removed_perms = []
+                    
+                    for perm, value in before.permissions:
+                        if perm in after.permissions:
+                            if after.permissions[perm] != value:
+                                if after.permissions[perm]:
+                                    added_perms.append(perm)
+                                else:
+                                    removed_perms.append(perm)
+                    
+                    embed = create_log_embed(
+                        "Role Updated",
+                        f"**Actor:** {executor.mention} ({executor.name}#{executor.discriminator} - {executor.id})\n"
+                        f"**Role:** {before.mention}\n"
+                        f"**Added Permissions:** {', '.join([str(p) for p in added_perms]) if added_perms else 'None'}\n"
+                        f"**Removed Permissions:** {', '.join([str(p) for p in removed_perms]) if removed_perms else 'None'}\n"
+                        f"**Time:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                        discord.Color.blue()
+                    )
+                    
+                    await log_channel.send(embed=embed)
+                    break
+        except Exception as e:
+            print(f"Error in on_guild_role_update: {e}")
+    
+    @commands.Cog.listener()
+    async def on_member_update(self, before, after):
+        try:
+            channel_id = await self.config_manager.get_log_channel(before.guild.id, 'roles')
+            if not channel_id:
+                return
+            
+            log_channel = before.guild.get_channel(channel_id)
+            if not log_channel:
+                return
+            
+            if before.roles != after.roles:
+                added_roles = [role for role in after.roles if role not in before.roles]
+                removed_roles = [role for role in before.roles if role not in after.roles]
+                
+                if added_roles or removed_roles:
+                    async for entry in before.guild.audit_logs(limit=1, action=discord.AuditLogAction.member_role_update):
+                        if entry.target.id == before.id:
+                            executor = entry.user
+                            
+                            embed = create_log_embed(
+                                "Member Role Updated",
+                                f"**Actor:** {executor.mention} ({executor.name}#{executor.discriminator} - {executor.id})\n"
+                                f"**Member:** {before.mention} ({before.name}#{before.discriminator} - {before.id})\n"
+                                f"**Added Roles:** {', '.join([r.mention for r in added_roles]) if added_roles else 'None'}\n"
+                                f"**Removed Roles:** {', '.join([r.mention for r in removed_roles]) if removed_roles else 'None'}\n"
+                                f"**Time:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                                discord.Color.blue()
+                            )
+                            
+                            await log_channel.send(embed=embed)
+                            break
+        except Exception as e:
+            print(f"Error in on_member_update: {e}")
 
 async def setup(bot):
     await bot.add_cog(Logging(bot))

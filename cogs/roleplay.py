@@ -35,7 +35,7 @@ class Roleplay(commands.Cog):
     
     async def is_roleplay_enabled(self, guild_id: int) -> bool:
         guild_config = await self.config_manager.get_guild_config(guild_id)
-        return guild_config.get('roleplay_enabled', False)
+        return guild_config.get('roleplay_enabled', True)
     
     async def get_roleplay_gif(self, guild_id: int, command: str) -> str:
         gifs = await self.config_manager.get_roleplay_gifs(guild_id)
