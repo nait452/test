@@ -15,8 +15,8 @@ class Logging(commands.Cog):
     @commands.command(name='setuplog')
     @is_admin()
     async def setup_log(self, ctx, log_type: str):
-        if log_type not in ['messages', 'voice', 'roles', 'antinuke']:
-            await ctx.send("❌ Invalid log type. Choose from: messages, voice, roles, antinuke")
+        if log_type not in ['messages', 'voice', 'roles', 'antinuke', 'message_edit', 'boost']:
+            await ctx.send("❌ Invalid log type. Choose from: messages, voice, roles, antinuke, message_edit, boost")
             return
         
         await ctx.send(f"Setting up {log_type} logging. Would you like to:\n1️⃣ Create a new channel\n2️⃣ Use an existing channel\n\nReact with 1️⃣ or 2️⃣")
@@ -85,6 +85,46 @@ class Logging(commands.Cog):
         
         if message.attachments:
             embed.add_field(name="Attachments", value='\n'.join([a.filename for a in message.attachments]))
+        
+        try:
+            await log_channel.send(embed=embed)
+        except:
+            pass
+    
+    @commands.Cog.listener()
+    async def on_message_edit(self, before, after):
+        if before.author.bot:
+            return
+        
+        if not before.guild:
+            return
+        
+        if before.content == after.content:
+            return
+        
+        channel_id = await self.config_manager.get_log_channel(before.guild.id, 'message_edit')
+        if not channel_id:
+            channel_id = await self.config_manager.get_log_channel(before.guild.id, 'messages')
+        
+        if not channel_id:
+            return
+        
+        log_channel = before.guild.get_channel(channel_id)
+        if not log_channel:
+            return
+        
+        original_content = before.content[:1000] if before.content else '*No content*'
+        new_content = after.content[:1000] if after.content else '*No content*'
+        
+        embed = create_log_embed(
+            "Message Edited",
+            f"**Author:** {before.author.mention} ({before.author.name}#{before.author.discriminator} - {before.author.id})\n"
+            f"**Channel:** {before.channel.mention}\n"
+            f"**[Jump to Message]({after.jump_url})**",
+            discord.Color.orange()
+        )
+        embed.add_field(name="Original Content", value=original_content, inline=False)
+        embed.add_field(name="New Content", value=new_content, inline=False)
         
         try:
             await log_channel.send(embed=embed)

@@ -85,6 +85,88 @@ class Roleplay(commands.Cog):
         await self.config_manager.set_roleplay_gif(ctx.guild.id, command, url)
         await ctx.send(f"✅ Set GIF for `.{command}` command")
     
+    @commands.command(name='setrpgif')
+    @is_admin()
+    async def set_rp_gif(self, ctx, command: str = None, url: str = None):
+        if not command or not url:
+            await ctx.send("❌ Usage: `.setrpgif <command> <gif_url>`")
+            return
+        
+        command = command.lower()
+        if command not in self.interaction_commands and command not in self.emote_commands:
+            all_commands = list(self.interaction_commands.keys()) + list(self.emote_commands.keys())
+            await ctx.send(f"❌ Invalid command. Must be a valid roleplay command.\nValid commands: {', '.join(all_commands[:20])}...")
+            return
+        
+        valid_extensions = ['.gif', '.png', '.jpg', '.jpeg', '.webp']
+        is_valid_url = any(ext in url.lower() for ext in valid_extensions) or 'tenor.com' in url.lower() or 'giphy.com' in url.lower()
+        
+        if not is_valid_url:
+            await ctx.send("❌ Invalid GIF URL. Please provide a valid image URL (gif, png, jpg, webp) or a Tenor/Giphy link")
+            return
+        
+        await self.config_manager.set_roleplay_gif(ctx.guild.id, command, url)
+        
+        embed = discord.Embed(
+            title=f"✅ GIF Set for `.{command}`",
+            color=discord.Color.green()
+        )
+        embed.set_image(url=url)
+        await ctx.send(embed=embed)
+    
+    @commands.command(name='removerpgif')
+    @is_admin()
+    async def remove_rp_gif(self, ctx, command: str = None):
+        if not command:
+            await ctx.send("❌ Usage: `.removerpgif <command>`")
+            return
+        
+        command = command.lower()
+        gifs = await self.config_manager.get_roleplay_gifs(ctx.guild.id)
+        
+        if command not in gifs:
+            await ctx.send(f"❌ No GIF set for `.{command}`")
+            return
+        
+        async with self.config_manager._lock:
+            import config as cfg
+            data = await self.config_manager._read_json(cfg.ROLEPLAY_GIFS_FILE)
+            if str(ctx.guild.id) in data and command in data[str(ctx.guild.id)]:
+                del data[str(ctx.guild.id)][command]
+                await self.config_manager._write_json(cfg.ROLEPLAY_GIFS_FILE, data)
+        
+        await ctx.send(f"✅ Removed GIF for `.{command}`")
+    
+    @commands.command(name='listrpgif', aliases=['listrpgifs', 'rpgifs'])
+    @is_admin()
+    async def list_rp_gifs(self, ctx, page: int = 1):
+        gifs = await self.config_manager.get_roleplay_gifs(ctx.guild.id)
+        
+        if not gifs:
+            await ctx.send("❌ No roleplay GIFs configured for this server")
+            return
+        
+        gif_entries = []
+        for command, url in gifs.items():
+            short_url = url[:50] + "..." if len(url) > 50 else url
+            gif_entries.append(f"**`.{command}`**: [{short_url}]({url})\n")
+        
+        from utils.formatting import paginate_list
+        paginated, total_pages = paginate_list(gif_entries, page, 10)
+        
+        if not paginated:
+            await ctx.send(f"❌ Page {page} doesn't exist. Total pages: {total_pages}")
+            return
+        
+        embed = discord.Embed(
+            title=f"🎭 Roleplay GIFs (Page {page}/{total_pages})",
+            description=''.join(paginated),
+            color=discord.Color.purple()
+        )
+        embed.set_footer(text=f"Total: {len(gifs)} GIF(s) configured")
+        
+        await ctx.send(embed=embed)
+    
     @commands.command(name='hug')
     async def hug(self, ctx, member: discord.Member = None):
         await self.send_roleplay_message(ctx, 'hug', self.interaction_commands['hug'], member)
