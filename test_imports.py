@@ -23,7 +23,11 @@ cogs_to_test = [
     'cogs.roles',
     'cogs.roleplay',
     'cogs.settings',
-    'cogs.voicechannel'
+    'cogs.voicechannel',
+    'cogs.leveling',
+    'cogs.economy',
+    'cogs.warns',
+    'cogs.boosters'
 ]
 
 for cog in cogs_to_test:

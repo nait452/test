@@ -24,7 +24,12 @@ def init_json_files():
         "data/fake_perms.json": {"permissions": {}},
         "data/roleplay_gifs.json": {"gifs": {}},
         "data/vc_data.json": {"voice_channels": {}},
-        "data/antinuke_data.json": {"whitelisted_users": [], "whitelisted_roles": [], "thresholds": {}, "warned_users": {}}
+        "data/antinuke_data.json": {"whitelisted_users": [], "whitelisted_roles": [], "thresholds": {}, "warned_users": {}},
+        "data/leveling_data.json": {},
+        "data/economy_data.json": {},
+        "data/warns_data.json": {},
+        "data/mutes_data.json": {},
+        "data/boosters_data.json": {}
     }
     for path, default in files.items():
         if not os.path.exists(path):
@@ -40,6 +45,10 @@ async def load_cogs():
         'cogs.voicechannel',
         'cogs.roleplay',
         'cogs.settings',
+        'cogs.leveling',
+        'cogs.economy',
+        'cogs.warns',
+        'cogs.boosters',
     ]
     
     for cog in cogs:
