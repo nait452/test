@@ -197,3 +197,40 @@ class ConfigManager:
                 if str(target_id) in data[str(guild_id)]['hardban_perms'][target_type]:
                     data[str(guild_id)]['hardban_perms'][target_type].remove(str(target_id))
                 await self._write_json(config.CONFIG_FILE, data)
+    
+    async def get_antinuke_action(self, guild_id: int) -> str:
+        async with self._lock:
+            data = await self._read_json(config.ANTINUKE_DATA_FILE)
+            if str(guild_id) not in data:
+                return 'jail'
+            return data[str(guild_id)].get('default_action', 'jail')
+    
+    async def set_antinuke_action(self, guild_id: int, action: str):
+        async with self._lock:
+            data = await self._read_json(config.ANTINUKE_DATA_FILE)
+            if str(guild_id) not in data:
+                data[str(guild_id)] = {'whitelist': {'users': [], 'roles': []}, 'thresholds': {}}
+            data[str(guild_id)]['default_action'] = action
+            await self._write_json(config.ANTINUKE_DATA_FILE, data)
+    
+    async def add_antinuke_history(self, guild_id: int, action_data: Dict):
+        async with self._lock:
+            data = await self._read_json(config.ANTINUKE_DATA_FILE)
+            if str(guild_id) not in data:
+                data[str(guild_id)] = {'whitelist': {'users': [], 'roles': []}, 'thresholds': {}, 'action_history': []}
+            if 'action_history' not in data[str(guild_id)]:
+                data[str(guild_id)]['action_history'] = []
+            
+            data[str(guild_id)]['action_history'].append(action_data)
+            
+            if len(data[str(guild_id)]['action_history']) > 50:
+                data[str(guild_id)]['action_history'] = data[str(guild_id)]['action_history'][-50:]
+            
+            await self._write_json(config.ANTINUKE_DATA_FILE, data)
+    
+    async def get_antinuke_history(self, guild_id: int, limit: int = 10) -> list:
+        async with self._lock:
+            data = await self._read_json(config.ANTINUKE_DATA_FILE)
+            if str(guild_id) not in data or 'action_history' not in data[str(guild_id)]:
+                return []
+            return data[str(guild_id)]['action_history'][-limit:]
